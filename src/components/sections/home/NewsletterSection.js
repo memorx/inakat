@@ -1,0 +1,57 @@
+import React, { useState } from "react";
+
+import fondo from "../../../assets/images/2-about/fondo.png";
+
+
+const Newsletter = () => {
+    const [email, setEmail] = useState("");
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        alert(`Mensaje enviado con: ${email}`);
+    };
+
+    return (
+        <section 
+            className="bg-soft-green text-black py-12 relative"
+            style={{ backgroundImage: `url(${fondo})`, backgroundSize: "cover", backgroundPosition: "center", }} >
+            <div className="bg-lemon-green text-white px-6 py-6 rounded-lg flex flex-col md:flex-row max-w-xl w-full md:w-auto items-center gap-3 mx-auto justify-center">
+                {/* Left Column: Title + Form (same column) */}
+                <div className="flex flex-col w-full md:w-4/3 pr-4">
+                    <h2 className="text-2xl md:text-3xl font-bold text-center md:text-left mb-4">
+                        SUSCRÍBETE A NUESTRO NEWSLETTER
+                    </h2>
+
+                    <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                        <input 
+                            type="email" 
+                            placeholder="ej. info@inakat.com"
+                            className="p-3 rounded-full text-black w-full md:w-50 focus:outline-none"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                        <button 
+                            type="submit" 
+                            className="bg-orange-500 text-white py-3 px-6 rounded-full flex items-center gap-2 hover:bg-soft-green"
+                        >
+                            SUSCRIBIRME <span className="ml-1">→</span>
+                        </button>
+                    </form>
+                </div>
+
+                {/* Right Column: Decorative Icon */}
+                <div className="w-full md:w-1/3 flex justify-start">
+                    <img 
+                        src={require("../../../assets/images/2-about/28.png")} 
+                        alt="Decoración" 
+                        className="w-30 h-30"
+                    />
+                </div>
+
+            </div>
+        </section>
+    );
+};
+
+export default Newsletter;

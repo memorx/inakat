@@ -1,0 +1,68 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import mainImage from '../../../assets/images/1-home/1.png';
+import overlayIcon from '../../../assets/images/1-home/2.png';
+
+
+const BusinessTalentSection = () => {
+    const navigate = useNavigate();
+        
+    return (
+        <>
+            {/* Sección con fondo de la imagen */}
+            <section className="bg-custom-beige py-20">
+                <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    {/* Contenido de la izquierda */}
+                    <div className="text-left">
+                        <h1 className="text-4xl font-bold text-title-dark leading-tight">
+                            BIENVENIDOS A INAKAT, <br />
+                            DONDE EL TALENTO IMPULSA <br />
+                            EL ÉXITO EMPRESARIAL
+                        </h1>
+                        <p className="text-lg text-text-black mt-4">
+                            ¡Encuentra al mejor talento en INAKAT! Líderes en reclutamiento en México.
+                            Expertos en traer profesionales de calidad para tu empresa. <br />
+                            ¡Asegura el éxito de tus proyectos hoy!
+                        </p>
+                        <button className="mt-6 bg-button-green text-white py-2 px-6 rounded hover:bg-green-700">
+                            CONOCE MÁS →
+                        </button>
+
+                        {/* Estadísticas */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-10">
+                            <div>
+                                <p className="text-3xl font-bold text-number-green">+2976</p>
+                                <p className="text-title-dark">TALENTOS</p>
+                            </div>
+                            <div>
+                                <p className="text-3xl font-bold text-number-green">+100</p>
+                                <p className="text-title-dark">EMPRESAS</p>
+                            </div>
+                            <div>
+                                <p className="text-3xl font-bold text-number-green">+50</p>
+                                <p className="text-title-dark">EXPERTOS</p>
+                            </div>
+                            <div>
+                                <p className="text-3xl font-bold text-number-green">+70</p>
+                                <p className="text-title-dark">PROFESIONES</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Imagen con icono superpuesto */}
+                    <div className="relative w-full flex justify-center">
+                        <img src={mainImage} alt="Equipo trabajando" className="rounded-lg shadow-lg w-full max-w-md" />
+                        <img
+                            src={overlayIcon}
+                            alt="Icono sobre la imagen"
+                            className="absolute inset-0 mx-auto my-auto w-1/4"
+                        />
+                    </div>
+                </div>
+            </section>
+        </>
+    );
+};
+
+export default BusinessTalentSection;
