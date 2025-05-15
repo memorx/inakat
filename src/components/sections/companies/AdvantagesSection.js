@@ -1,36 +1,90 @@
 import React from 'react';
+import decorativeImage from '../../../assets/images/3-companies/4.png';
+import benefit1 from '../../../assets/images/3-companies/5.png';
+import benefit2 from '../../../assets/images/3-companies/6.png';
+import benefit3 from '../../../assets/images/3-companies/7.png';
+import benefit4 from '../../../assets/images/3-companies/8.png';
+import benefit5 from '../../../assets/images/3-companies/9.png';
+import benefit6 from '../../../assets/images/3-companies/10.png';
 
-const advantages = [
-    { icon: '🎯', title: 'Reclutamiento Estratégico' },
-    { icon: '💼', title: 'Gestión de Talento' },
-    { icon: '📊', title: 'Análisis de Mercado' },
-    { icon: '🤝', title: 'Soporte Continuo' },
-    { icon: '⚡', title: 'Proceso Ágil' },
-    { icon: '✨', title: 'Calidad Garantizada' }
+const benefits = [
+    { 
+        icon: benefit1, 
+        title: 'ENFOQUE CENTRADO EN EL TALENTO Y LA EMPRESA' 
+    },
+    { 
+        icon: benefit2, 
+        title: 'AMPLIA COBERTURA GEOGRÁFICA' 
+    },
+    { 
+        icon: benefit3, 
+        title: 'COMPROMISO CON LA EXCELENCIA' 
+    },
+    { 
+        icon: benefit4, 
+        title: 'CONEXIONES ESTRATÉGICAS' 
+    },
+    { 
+        icon: benefit5, 
+        title: 'ENFOQUE EN EL CLIENTE' 
+    },
+    { 
+        icon: benefit6, 
+        title: 'ÁGILES Y FLEXIBLES' 
+    }
 ];
 
 const Advantages = () => {
     return (
-        <section className="py-16 bg-white">
-            <div className="container mx-auto">
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl font-bold text-title-dark mb-6">
-                        DESCUBRE LOS <br />
-                        BENEFICIOS DE INAKAT
-                    </h2>
-                    <p className="text-lg max-w-2xl mx-auto">
-                        Potencia tu empresa con nuestras soluciones integrales de reclutamiento. 
-                        Descubre cómo podemos ayudarte a encontrar el talento perfecto para tu equipo.
-                    </p>
-                </div>
+        <section className="py-16 bg-custom-beige relative overflow-hidden">
+            {/* Decorative image on the right */}
+            <img 
+                src={decorativeImage} 
+                alt="Decoración" 
+                className="absolute left-[-10em] top-1/2 transform -translate-y-1/2 rotate-[-90deg] w-[300px]"
+            />
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    {advantages.map((advantage, index) => (
-                        <div key={index} className="bg-soft-green p-6 rounded-xl text-center">
-                            <div className="text-4xl mb-3">{advantage.icon}</div>
-                            <h3 className="text-white font-semibold">{advantage.title}</h3>
+            <div className="container mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 ml-[50px]">
+                    {/* Title and description column */}
+                    <div className="md:col-span-4  py-16 px-10">
+                        <h2 className="text-4xl font-bold text-title-dark mb-6">
+                            DESCUBRE LOS <br />
+                            BENEFICIOS DE <br />
+                            INAKAT
+                        </h2>
+                        <p className="text-lg text-justify mb-8">
+                            Encuentra talento excepcional
+                            para tu equipo. Nuestra
+                            experiencia en reclutamiento te
+                            brinda los mejores profesionales.
+                            Potencia el crecimiento de tu
+                            empresa con nosotros.
+                        </p>
+                    </div>
+
+                    {/* Benefits grid */}
+                    <div className="md:col-span-8">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                            {benefits.map((benefit, index) => (
+                                <div 
+                                    key={index} 
+                                    className="bg-title-dark p-6 rounded-xl text-center flex flex-col items-center"
+                                >
+                                    <h3 className="text-white text-m font-semibold">
+                                        {benefit.title}
+                                    </h3>
+                                    <br></br>
+                                    <div className="rounded-full mb-4 w-16 h-16 flex items-center justify-center">
+                                        <img 
+                                            src={benefit.icon} 
+                                            alt={benefit.title}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    </div>
                 </div>
             </div>
         </section>

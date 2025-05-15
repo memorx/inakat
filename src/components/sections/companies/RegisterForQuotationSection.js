@@ -9,7 +9,6 @@ const RegisterForQuotation = () => {
 
     return (
         <section className="bg-soft-green text-white bg-center flex items-center justify-center py-10 relative overflow-hidden">
-            {/* Laptop image positioned absolutely relative to section */}
             <img
                 src={laptopImage}
                 alt="Por qué INAKAT"
