@@ -8,16 +8,12 @@ const AboutUs = () => {
     return (
         <section className="py-20">
             <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-                {/* Contenedor con imagen de fondo y overlay */}
                 <div className="relative md:col-span-2">
-                    {/* Imagen */}
                     <img 
                         src={aboutImage} 
                         alt="Equipo INAKAT" 
                         className="shadow-lg w-full" style={{ borderRadius: "30px" }}
                     />
-
-                    {/* Capa translúcida con el mismo border-radius */}
                     <div className="absolute inset-0 bg-soft-green opacity-60 rounded-lg" style={{ borderRadius: "30px" }}></div>
                 </div>
                 <div className="md:col-span-1">

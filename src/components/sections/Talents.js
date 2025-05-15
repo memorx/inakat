@@ -12,7 +12,6 @@ const Talents = () => {
                 <HeroTalent />
                 <SearchPositions />
             </section>
-            {/* Footer */}
             <Footer />
         </>
     );

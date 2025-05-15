@@ -201,8 +201,6 @@ const Talents = () => {
                     </div>
                 </div>
             </section>
-            {/* Footer */}
-            <Footer />
         </>
     );
 };
