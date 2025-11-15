@@ -49,10 +49,7 @@ const FormRegisterForQuotationSection = () => {
   const fileInputIdRef = useRef<HTMLInputElement>(null);
   const fileInputDocRef = useRef<HTMLInputElement>(null);
 
-  // =============================================
-  // VALIDACIONES MEJORADAS
-  // =============================================
-
+  // Validaciones mejoradas
   const validateName = (value: string) =>
     /^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/.test(value);
 
@@ -60,8 +57,7 @@ const FormRegisterForQuotationSection = () => {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const validateURL = (url: string) => {
-    if (!url) return true; // Si está vacío, es válido (no es required)
-    // Acepta URLs con o sin protocolo
+    if (!url) return true;
     const urlPattern =
       /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
     return urlPattern.test(url);
@@ -69,20 +65,14 @@ const FormRegisterForQuotationSection = () => {
 
   const validateRFC = (rfc: string) => {
     if (!rfc) return false;
-    // RFC más flexible - acepta formato estándar mexicano
     const rfcPattern = /^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
     return rfcPattern.test(rfc.toUpperCase());
   };
-
-  // =============================================
-  // MANEJO DE CAMBIOS EN INPUTS
-  // =============================================
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Validaciones en tiempo real
     const newErrors = { ...errors };
 
     switch (name) {
@@ -105,26 +95,22 @@ const FormRegisterForQuotationSection = () => {
         break;
 
       case 'sitioWeb':
-        // Solo validar si hay un valor
         if (value && !validateURL(value)) {
-          newErrors.sitioWeb =
-            'URL inválida. Ejemplo: www.empresa.com o https://empresa.com';
+          newErrors.sitioWeb = 'URL inválida';
         } else {
           delete newErrors.sitioWeb;
         }
         break;
 
       case 'rfc':
-        const upperRFC = value.toUpperCase();
-        if (!validateRFC(upperRFC)) {
-          newErrors.rfc = 'RFC inválido. Formato: ABC123456XYZ (13 caracteres)';
+        if (!validateRFC(value.toUpperCase())) {
+          newErrors.rfc = 'RFC inválido';
         } else {
           delete newErrors.rfc;
         }
         break;
 
       case 'password':
-        // Validar cuando cambian el password
         if (formData.confirmPassword && value !== formData.confirmPassword) {
           newErrors.confirmPassword = 'Las contraseñas no coinciden';
         } else {
@@ -133,7 +119,6 @@ const FormRegisterForQuotationSection = () => {
         break;
 
       case 'confirmPassword':
-        // Comparar con el value actual, no con formData.confirmPassword
         if (value !== formData.password) {
           newErrors.confirmPassword = 'Las contraseñas no coinciden';
         } else {
@@ -150,14 +135,8 @@ const FormRegisterForQuotationSection = () => {
     fileType: 'identificacion' | 'documentosConstitucion'
   ) => {
     const file = e.target.files?.[0] || null;
+    setFormData((prev) => ({ ...prev, [fileType]: file }));
 
-    // Actualizar el archivo en el estado
-    setFormData((prev) => ({
-      ...prev,
-      [fileType]: file
-    }));
-
-    // IMPORTANTE: Limpiar el error cuando se selecciona un archivo
     if (file) {
       const newErrors = { ...errors };
       delete newErrors[fileType];
@@ -165,37 +144,24 @@ const FormRegisterForQuotationSection = () => {
     }
   };
 
-  // =============================================
-  // ENVÍO DEL FORMULARIO
-  // =============================================
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Limpiar errores previos de archivos
     const newErrors = { ...errors };
-    delete newErrors.identificacion;
-    delete newErrors.documentosConstitucion;
+    let hasErrors = false;
 
-    // Validar que los archivos estén presentes
     if (!formData.identificacion) {
-      setErrors({
-        ...errors,
-        identificacion: 'La identificación es requerida'
-      });
-      return;
+      newErrors.identificacion = 'La identificación es requerida';
+      hasErrors = true;
     }
 
     if (!formData.documentosConstitucion) {
-      setErrors({
-        ...errors,
-        documentosConstitucion: 'Los documentos son requeridos'
-      });
-      return;
+      newErrors.documentosConstitucion = 'Los documentos son requeridos';
+      hasErrors = true;
     }
 
-    // Validar que no haya errores
-    if (Object.keys(errors).length > 0) {
+    if (hasErrors || Object.keys(errors).length > 0) {
+      setErrors(newErrors);
       setSubmitStatus({
         type: 'error',
         message: 'Por favor corrige los errores en el formulario'
@@ -207,7 +173,6 @@ const FormRegisterForQuotationSection = () => {
     setSubmitStatus({ type: null, message: '' });
 
     try {
-      // 1. Subir identificación
       const idFormData = new FormData();
       idFormData.append('file', formData.identificacion);
 
@@ -216,14 +181,9 @@ const FormRegisterForQuotationSection = () => {
         body: idFormData
       });
 
-      if (!idUploadRes.ok) {
-        const errorData = await idUploadRes.json();
-        throw new Error(errorData.error || 'Error al subir identificación');
-      }
-
+      if (!idUploadRes.ok) throw new Error('Error al subir identificación');
       const idData = await idUploadRes.json();
 
-      // 2. Subir documentos de constitución
       const docFormData = new FormData();
       docFormData.append('file', formData.documentosConstitucion);
 
@@ -232,14 +192,9 @@ const FormRegisterForQuotationSection = () => {
         body: docFormData
       });
 
-      if (!docUploadRes.ok) {
-        const errorData = await docUploadRes.json();
-        throw new Error(errorData.error || 'Error al subir documentos');
-      }
-
+      if (!docUploadRes.ok) throw new Error('Error al subir documentos');
       const docData = await docUploadRes.json();
 
-      // 3. Enviar solicitud con las URLs de los archivos
       const response = await fetch('/api/company-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -263,11 +218,9 @@ const FormRegisterForQuotationSection = () => {
       if (data.success) {
         setSubmitStatus({
           type: 'success',
-          message:
-            '¡Solicitud enviada exitosamente! Revisaremos tu información y te contactaremos pronto.'
+          message: '¡Solicitud enviada exitosamente!'
         });
 
-        // Resetear formulario
         setFormData({
           nombre: '',
           apellidoPaterno: '',
@@ -284,22 +237,18 @@ const FormRegisterForQuotationSection = () => {
           documentosConstitucion: null
         });
 
-        // Limpiar errores
         setErrors({});
-
-        // Scroll al mensaje de éxito
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(data.error || 'Error al enviar solicitud');
       }
     } catch (error) {
-      console.error('Error:', error);
       setSubmitStatus({
         type: 'error',
         message:
           error instanceof Error
             ? error.message
-            : 'Error al procesar la solicitud. Por favor intenta de nuevo.'
+            : 'Error al procesar la solicitud'
       });
     } finally {
       setIsSubmitting(false);
@@ -307,7 +256,11 @@ const FormRegisterForQuotationSection = () => {
   };
 
   return (
-    <section id="register" className="bg-title-dark text-white bg-center py-20">
+    <section
+      id="register"
+      className="bg-title-dark text-white bg-center py-20"
+      suppressHydrationWarning
+    >
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto bg-lemon-green p-8 rounded-2xl">
           <h2 className="text-3xl font-bold text-title-dark mb-12 text-center">
@@ -326,11 +279,9 @@ const FormRegisterForQuotationSection = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} suppressHydrationWarning>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* COLUMNA IZQUIERDA */}
               <div>
-                {/* DATOS DEL USUARIO */}
                 <div className="mb-8">
                   <h3 className="font-bold text-lg mb-4">DATOS DEL USUARIO</h3>
                   <div className="space-y-4">
@@ -387,7 +338,7 @@ const FormRegisterForQuotationSection = () => {
 
                     <div>
                       <label className="block mb-2 font-semibold">
-                        Identificación (INE, licencia, pasaporte) *
+                        Identificación *
                       </label>
                       <input
                         type="file"
@@ -405,7 +356,7 @@ const FormRegisterForQuotationSection = () => {
                       </button>
                       {formData.identificacion && (
                         <span className="text-sm text-gray-700 mt-2 block font-semibold">
-                          ✓ Archivo seleccionado: {formData.identificacion.name}
+                          ✓ {formData.identificacion.name}
                         </span>
                       )}
                       {errors.identificacion && (
@@ -417,7 +368,6 @@ const FormRegisterForQuotationSection = () => {
                   </div>
                 </div>
 
-                {/* CONTRASEÑAS */}
                 <div className="mb-8">
                   <h3 className="font-bold text-lg mb-4">
                     GENERA TU CONTRASEÑA
@@ -434,9 +384,6 @@ const FormRegisterForQuotationSection = () => {
                         required
                         minLength={6}
                       />
-                      <p className="text-xs text-gray-700 mt-1">
-                        Mínimo 6 caracteres
-                      </p>
                     </div>
 
                     <div>
@@ -459,7 +406,6 @@ const FormRegisterForQuotationSection = () => {
                 </div>
               </div>
 
-              {/* COLUMNA DERECHA */}
               <div>
                 <h3 className="font-bold text-lg mb-4">DATOS DE LA EMPRESA</h3>
                 <div className="space-y-4">
@@ -469,7 +415,7 @@ const FormRegisterForQuotationSection = () => {
                       name="nombreEmpresa"
                       value={formData.nombreEmpresa}
                       onChange={handleInputChange}
-                      placeholder="Nombre comercial de la Empresa *"
+                      placeholder="Nombre comercial *"
                       className="w-full p-3 rounded-lg border border-gray-300 text-gray-700"
                       required
                     />
@@ -481,7 +427,7 @@ const FormRegisterForQuotationSection = () => {
                       name="correoEmpresa"
                       value={formData.correoEmpresa}
                       onChange={handleInputChange}
-                      placeholder="Correo electrónico de la Empresa *"
+                      placeholder="Correo electrónico *"
                       className="w-full p-3 rounded-lg border border-gray-300 text-gray-700"
                       required
                     />
@@ -498,7 +444,7 @@ const FormRegisterForQuotationSection = () => {
                       name="sitioWeb"
                       value={formData.sitioWeb}
                       onChange={handleInputChange}
-                      placeholder="Sitio web de la Empresa (opcional)"
+                      placeholder="Sitio web (opcional)"
                       className="w-full p-3 rounded-lg border border-gray-300 text-gray-700"
                     />
                     {errors.sitioWeb && (
@@ -536,9 +482,6 @@ const FormRegisterForQuotationSection = () => {
                         {errors.rfc}
                       </span>
                     )}
-                    <p className="text-xs text-gray-700 mt-1">
-                      Formato: ABC123456XYZ (13 caracteres)
-                    </p>
                   </div>
 
                   <div>
@@ -547,7 +490,7 @@ const FormRegisterForQuotationSection = () => {
                       name="direccionEmpresa"
                       value={formData.direccionEmpresa}
                       onChange={handleInputChange}
-                      placeholder="Dirección de la Empresa *"
+                      placeholder="Dirección *"
                       className="w-full p-3 rounded-lg border border-gray-300 text-gray-700"
                       required
                     />
@@ -555,7 +498,7 @@ const FormRegisterForQuotationSection = () => {
 
                   <div>
                     <label className="block mb-2 text-sm font-semibold">
-                      Documentos de constitución u otro documento evidencia *
+                      Documentos *
                     </label>
                     <input
                       type="file"
@@ -575,8 +518,7 @@ const FormRegisterForQuotationSection = () => {
                     </button>
                     {formData.documentosConstitucion && (
                       <span className="text-sm text-gray-700 mt-2 block font-semibold">
-                        ✓ Archivo seleccionado:{' '}
-                        {formData.documentosConstitucion.name}
+                        ✓ {formData.documentosConstitucion.name}
                       </span>
                     )}
                     {errors.documentosConstitucion && (
@@ -589,18 +531,16 @@ const FormRegisterForQuotationSection = () => {
               </div>
             </div>
 
-            {/* BOTÓN DE ENVÍO */}
             <div className="mt-8">
               <button
                 type="submit"
-                disabled={isSubmitting || Object.keys(errors).length > 0}
-                className="bg-button-orange text-white py-3 px-12 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
+                disabled={isSubmitting}
+                className="bg-button-orange text-white py-3 px-12 rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors font-semibold"
               >
                 {isSubmitting ? 'ENVIANDO...' : 'ENVIAR →'}
               </button>
               <p className="text-xs mt-2 text-gray-700">
-                *Al dar click en el botón, aceptas nuestros términos y
-                condiciones y política de privacidad.
+                *Al dar click, aceptas términos y condiciones.
               </p>
             </div>
           </form>

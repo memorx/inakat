@@ -30,6 +30,7 @@ model User {
   
   // Relación opcional con CompanyRequest
   companyRequest    CompanyRequest?
+  jobs              Job[]
   
   @@index([email])
   @@index([role])
@@ -91,4 +92,32 @@ model ContactMessage {
 
   @@index([createdAt])
   @@index([email])
+}
+
+// =============================================
+// VACANTES/EMPLEOS
+// =============================================
+model Job {
+  id              Int       @id @default(autoincrement())
+  title           String
+  company         String
+  location        String
+  salary          String
+  jobType         String
+  isRemote        Boolean   @default(false)
+  description     String    @db.Text
+  requirements    String?   @db.Text
+  status          String    @default("active")
+  companyId       Int?
+  company_user    User?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyRating   Float?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  expiresAt       DateTime?
+  
+  @@index([status])
+  @@index([companyId])
+  @@index([createdAt])
+  @@index([location])
+  @@index([jobType])
 }

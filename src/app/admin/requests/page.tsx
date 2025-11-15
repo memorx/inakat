@@ -1,7 +1,10 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import CompanyRequestTable from "@/components/sections/admin/CompanyRequestTable";
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, RefreshCw } from 'lucide-react';
+import CompanyRequestTable from '@/components/sections/admin/CompanyRequestTable';
+import RequestDetailModal from '@/components/sections/admin/RequestDetailModal';
+import RejectModal from '@/components/sections/admin/RejectModal';
 
 interface CompanyRequest {
   id: number;
@@ -17,43 +20,88 @@ interface CompanyRequest {
   identificacionUrl: string | null;
   documentosConstitucionUrl: string | null;
   status: string;
+  rejectionReason: string | null;
   createdAt: string;
   updatedAt: string;
+  approvedAt: string | null;
 }
 
 export default function AdminRequestsPage() {
   const [requests, setRequests] = useState<CompanyRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<CompanyRequest[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Modales
   const [selectedRequest, setSelectedRequest] = useState<CompanyRequest | null>(
     null
   );
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [requestToReject, setRequestToReject] = useState<CompanyRequest | null>(
+    null
+  );
+
+  // Filtros
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch requests from API
   useEffect(() => {
     fetchRequests();
   }, []);
 
+  // Aplicar filtros cuando cambian
+  useEffect(() => {
+    applyFilters();
+  }, [requests, statusFilter, searchQuery]);
+
   const fetchRequests = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/company-requests");
+      setError(null);
+
+      const response = await fetch('/api/company-requests');
       const data = await response.json();
 
       if (response.ok) {
         setRequests(data.data);
       } else {
-        setError(data.error || "Error al cargar solicitudes");
+        setError(data.error || 'Error al cargar solicitudes');
       }
     } catch (error) {
-      setError("Error al conectar con el servidor");
-      console.error("Error fetching requests:", error);
+      setError('Error al conectar con el servidor');
+      console.error('Error fetching requests:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEdit = (id: number) => {
+  const applyFilters = () => {
+    let filtered = [...requests];
+
+    // Filtrar por estado
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((req) => req.status === statusFilter);
+    }
+
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (req) =>
+          req.nombreEmpresa.toLowerCase().includes(query) ||
+          req.rfc.toLowerCase().includes(query) ||
+          req.correoEmpresa.toLowerCase().includes(query) ||
+          req.nombre.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredRequests(filtered);
+  };
+
+  const handleViewDetails = (id: number) => {
     const request = requests.find((req) => req.id === id);
     if (request) {
       setSelectedRequest(request);
@@ -61,203 +109,220 @@ export default function AdminRequestsPage() {
   };
 
   const handleApprove = async (id: number) => {
-    try {
-      const response = await fetch(`/api/company-requests/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: "approved" }),
-      });
-
-      if (response.ok) {
-        // Refresh the list
-        await fetchRequests();
-        alert("Solicitud aprobada exitosamente");
-      } else {
-        const data = await response.json();
-        alert(data.error || "Error al aprobar solicitud");
-      }
-    } catch (error) {
-      console.error("Error approving request:", error);
-      alert("Error al aprobar solicitud");
-    }
-  };
-
-  const handleReject = async (id: number) => {
-    if (!confirm("¿Está seguro que desea rechazar esta solicitud?")) {
+    if (!confirm('¿Estás seguro que deseas aprobar esta solicitud?')) {
       return;
     }
 
     try {
       const response = await fetch(`/api/company-requests/${id}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: "rejected" }),
+        body: JSON.stringify({ status: 'approved' })
       });
 
       if (response.ok) {
-        // Refresh the list
         await fetchRequests();
-        alert("Solicitud rechazada");
+        setSelectedRequest(null);
+        alert('✅ Solicitud aprobada exitosamente');
       } else {
         const data = await response.json();
-        alert(data.error || "Error al rechazar solicitud");
+        alert('❌ ' + (data.error || 'Error al aprobar solicitud'));
       }
     } catch (error) {
-      console.error("Error rejecting request:", error);
-      alert("Error al rechazar solicitud");
+      console.error('Error approving request:', error);
+      alert('❌ Error al aprobar solicitud');
     }
+  };
+
+  const handleRejectClick = (id: number) => {
+    const request = requests.find((req) => req.id === id);
+    if (request) {
+      setRequestToReject(request);
+      setRejectModalOpen(true);
+      setSelectedRequest(null); // Cerrar modal de detalles si está abierto
+    }
+  };
+
+  const handleRejectConfirm = async (id: number, reason?: string) => {
+    try {
+      const response = await fetch(`/api/company-requests/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: 'rejected',
+          rejectionReason: reason || null
+        })
+      });
+
+      if (response.ok) {
+        await fetchRequests();
+        setRejectModalOpen(false);
+        setRequestToReject(null);
+        alert('✅ Solicitud rechazada');
+      } else {
+        const data = await response.json();
+        alert('❌ ' + (data.error || 'Error al rechazar solicitud'));
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      alert('❌ Error al rechazar solicitud');
+    }
+  };
+
+  // Estadísticas
+  const stats = {
+    total: requests.length,
+    pending: requests.filter((r) => r.status === 'pending').length,
+    approved: requests.filter((r) => r.status === 'approved').length,
+    rejected: requests.filter((r) => r.status === 'rejected').length
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto py-10 px-4">
-        <h1 className="text-3xl font-bold mb-6">Panel de Administración</h1>
+      <div className="container mx-auto py-8 px-4">
+        {/* HEADER */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            Panel de Administración
+          </h1>
+          <p className="text-gray-600">
+            Gestiona las solicitudes de registro de empresas
+          </p>
+        </div>
 
+        {/* ESTADÍSTICAS */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <p className="text-sm text-gray-600 mb-1">Total</p>
+            <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
+            <p className="text-sm text-gray-600 mb-1">Pendientes</p>
+            <p className="text-3xl font-bold text-yellow-600">
+              {stats.pending}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+            <p className="text-sm text-gray-600 mb-1">Aprobadas</p>
+            <p className="text-3xl font-bold text-green-600">
+              {stats.approved}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
+            <p className="text-sm text-gray-600 mb-1">Rechazadas</p>
+            <p className="text-3xl font-bold text-red-600">{stats.rejected}</p>
+          </div>
+        </div>
+
+        {/* FILTROS Y BÚSQUEDA */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Búsqueda */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Buscar por empresa, RFC, correo o nombre..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Filtro por estado */}
+            <div className="flex items-center gap-2">
+              <Filter className="text-gray-400 w-5 h-5" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="pending">Pendientes</option>
+                <option value="approved">Aprobadas</option>
+                <option value="rejected">Rechazadas</option>
+              </select>
+            </div>
+
+            {/* Botón refrescar */}
+            <button
+              onClick={fetchRequests}
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}
+              />
+              Refrescar
+            </button>
+          </div>
+        </div>
+
+        {/* ERROR MESSAGE */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <p className="font-semibold">Error</p>
+            <p>{error}</p>
           </div>
         )}
 
-        <CompanyRequestTable
-          data={requests}
-          onEdit={handleEdit}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          isLoading={isLoading}
-        />
+        {/* TABLA */}
+        <div className="bg-white rounded-lg shadow">
+          <CompanyRequestTable
+            data={filteredRequests}
+            onEdit={handleViewDetails}
+            onApprove={handleApprove}
+            onReject={handleRejectClick}
+            isLoading={isLoading}
+          />
+        </div>
 
-        {/* Modal para ver detalles */}
-        {selectedRequest && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">
-                Detalles de la Solicitud
-              </h2>
+        {/* INFO DE RESULTADOS */}
+        {!isLoading && filteredRequests.length === 0 && !error && (
+          <div className="text-center py-10 bg-white rounded-lg shadow mt-6">
+            <p className="text-gray-600">
+              {searchQuery || statusFilter !== 'all'
+                ? 'No se encontraron solicitudes que coincidan con los filtros'
+                : 'No hay solicitudes registradas'}
+            </p>
+          </div>
+        )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold text-gray-700">
-                    Datos del Usuario
-                  </h3>
-                  <p>
-                    <strong>Nombre:</strong> {selectedRequest.nombre}
-                  </p>
-                  <p>
-                    <strong>Apellido Paterno:</strong>{" "}
-                    {selectedRequest.apellidoPaterno}
-                  </p>
-                  <p>
-                    <strong>Apellido Materno:</strong>{" "}
-                    {selectedRequest.apellidoMaterno}
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-700">
-                    Datos de la Empresa
-                  </h3>
-                  <p>
-                    <strong>Nombre:</strong> {selectedRequest.nombreEmpresa}
-                  </p>
-                  <p>
-                    <strong>Correo:</strong> {selectedRequest.correoEmpresa}
-                  </p>
-                  <p>
-                    <strong>RFC:</strong> {selectedRequest.rfc}
-                  </p>
-                </div>
-
-                <div className="col-span-2">
-                  <p>
-                    <strong>Razón Social:</strong>{" "}
-                    {selectedRequest.razonSocial}
-                  </p>
-                  <p>
-                    <strong>Dirección:</strong>{" "}
-                    {selectedRequest.direccionEmpresa}
-                  </p>
-                  {selectedRequest.sitioWeb && (
-                    <p>
-                      <strong>Sitio Web:</strong>{" "}
-                      <a
-                        href={selectedRequest.sitioWeb}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {selectedRequest.sitioWeb}
-                      </a>
-                    </p>
-                  )}
-                </div>
-
-                <div className="col-span-2">
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    <span
-                      className={`px-2 py-1 rounded text-sm ${
-                        selectedRequest.status === "pending"
-                          ? "bg-yellow-200 text-yellow-800"
-                          : selectedRequest.status === "approved"
-                          ? "bg-green-200 text-green-800"
-                          : "bg-red-200 text-red-800"
-                      }`}
-                    >
-                      {selectedRequest.status === "pending"
-                        ? "Pendiente"
-                        : selectedRequest.status === "approved"
-                        ? "Aprobado"
-                        : "Rechazado"}
-                    </span>
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Creado:{" "}
-                    {new Date(selectedRequest.createdAt).toLocaleString(
-                      "es-MX"
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end gap-2">
-                {selectedRequest.status === "pending" && (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleReject(selectedRequest.id);
-                        setSelectedRequest(null);
-                      }}
-                      className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded"
-                    >
-                      Rechazar
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleApprove(selectedRequest.id);
-                        setSelectedRequest(null);
-                      }}
-                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded"
-                    >
-                      Aprobar
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => setSelectedRequest(null)}
-                  className="bg-gray-300 hover:bg-gray-400 text-black font-semibold px-6 py-2 rounded"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
+        {!isLoading && filteredRequests.length > 0 && (
+          <div className="mt-4 text-center text-sm text-gray-600">
+            Mostrando {filteredRequests.length} de {requests.length} solicitudes
           </div>
         )}
       </div>
+
+      {/* MODAL DE DETALLES */}
+      {selectedRequest && (
+        <RequestDetailModal
+          request={selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+          onApprove={handleApprove}
+          onReject={handleRejectClick}
+        />
+      )}
+
+      {/* MODAL DE RECHAZO */}
+      {rejectModalOpen && requestToReject && (
+        <RejectModal
+          requestId={requestToReject.id}
+          companyName={requestToReject.nombreEmpresa}
+          onConfirm={handleRejectConfirm}
+          onCancel={() => {
+            setRejectModalOpen(false);
+            setRequestToReject(null);
+          }}
+        />
+      )}
     </div>
   );
 }

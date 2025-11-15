@@ -1,80 +1,124 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   MapPin,
   Briefcase,
   Bookmark,
-  MoreVertical,
-} from "lucide-react";
+  MoreVertical
+} from 'lucide-react';
 
-interface JobListing {
+interface Job {
   id: number;
   title: string;
   company: string;
   location: string;
   salary: string;
-  type: string;
-  remote: boolean;
-  rating: number;
+  jobType: string;
+  isRemote: boolean;
+  companyRating: number | null;
   description: string;
+  requirements: string | null;
+  status: string;
+  createdAt: string;
 }
 
-// Datos de ejemplo para vacantes
-const jobListings: JobListing[] = [
-  {
-    id: 1,
-    title: "Asistente Administrativo",
-    company: "Walmart",
-    location: "Monterrey, Nuevo León",
-    salary: "$25,000 - $35,000 / mes",
-    type: "Tiempo Completo",
-    remote: true,
-    rating: 4.3,
-    description:
-      "Estamos buscando un individuo altamente organizado y proactivo para unirse a nuestro equipo como Asistente Administrativo. En este rol, serás responsable de proporcionar apoyo administrativo crucial para garantizar el funcionamiento eficiente de nuestras operaciones diarias." +
-      "Buscamos a alguien con excelentes habilidades de comunicación, capacidad para manejar múltiples tareas y una fuerte atención al detalle." +
-      "Si te apasiona trabajar en un entorno dinámico y colaborativo, ¡esperamos conocerte pronto!",
-  },
-  {
-    id: 2,
-    title: "Analista de Recursos Humanos",
-    company: "Amazon",
-    location: "CDMX",
-    salary: "$30,000 - $40,000 / mes",
-    type: "Medio Tiempo",
-    remote: false,
-    rating: 4.7,
-    description:
-      "Buscamos a alguien con excelentes habilidades de comunicación y capacidad para manejar múltiples tareas...",
-  },
-];
-
 const SearchPositionsSection = () => {
-  const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filtrar vacantes por búsqueda
-  const filteredJobs = jobListings.filter(
-    (job) =>
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [jobTypeFilter, setJobTypeFilter] = useState('');
+
+  // Cargar vacantes desde la API
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  // Aplicar filtros cuando cambien
+  useEffect(() => {
+    applyFilters();
+  }, [jobs, searchTerm, locationFilter, jobTypeFilter]);
+
+  const fetchJobs = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/jobs?status=active');
+      const data = await response.json();
+
+      if (data.success) {
+        setJobs(data.data);
+        if (data.data.length > 0) {
+          setSelectedJob(data.data[0]); // Seleccionar la primera por defecto
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...jobs];
+
+    // Filtrar por búsqueda
+    if (searchTerm.trim()) {
+      const query = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (job) =>
+          job.title.toLowerCase().includes(query) ||
+          job.company.toLowerCase().includes(query) ||
+          job.description.toLowerCase().includes(query)
+      );
+    }
+
+    // Filtrar por ubicación
+    if (locationFilter.trim()) {
+      filtered = filtered.filter((job) =>
+        job.location.toLowerCase().includes(locationFilter.toLowerCase())
+      );
+    }
+
+    // Filtrar por tipo de trabajo
+    if (jobTypeFilter && jobTypeFilter !== 'all') {
+      filtered = filtered.filter((job) => job.jobType === jobTypeFilter);
+    }
+
+    setFilteredJobs(filtered);
+  };
+
+  const getTimeSincePosted = (createdAt: string) => {
+    const now = new Date();
+    const posted = new Date(createdAt);
+    const diffMs = now.getTime() - posted.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `Publicado hace ${diffMins} min.`;
+    if (diffHours < 24)
+      return `Publicado hace ${diffHours} hora${diffHours > 1 ? 's' : ''}.`;
+    return `Publicado hace ${diffDays} día${diffDays > 1 ? 's' : ''}.`;
+  };
 
   return (
     <section className="bg-custom-beige text-text-black pt-20">
-      {/* Sección 2: Filtros de Búsqueda */}
+      {/* Sección de Búsqueda */}
       <div className="bg-soft-green text-white py-24 mt-20">
         <div className="container mx-auto text-center">
-          {/* Título */}
           <h2 className="text-3xl font-bold mb-10">
             DESCUBRE TUS OPORTUNIDADES
           </h2>
 
           {/* Filtros */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mb-10">
-            {/* Filtro de Puesto/Área/Empresa */}
+            {/* Búsqueda de puesto/empresa */}
             <div className="relative w-full md:w-1/4">
               <input
                 type="text"
@@ -83,167 +127,202 @@ const SearchPositionsSection = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <Briefcase className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
+              <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             </div>
 
-            {/* Filtro de Ubicación */}
-            <div className="relative w-full md:w-1/5">
+            {/* Filtro de ubicación */}
+            <div className="relative w-full md:w-1/4">
               <input
                 type="text"
                 placeholder="Ubicación"
                 className="w-full p-3 pl-10 text-black rounded-full"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
               />
-              <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             </div>
 
-            {/* Filtro de Modalidad de Trabajo */}
-            <div className="relative w-full md:w-1/5">
-              <select className="w-full p-3 pl-10 text-black rounded-full">
-                <option value="">Modalidad de trabajo</option>
-                <option value="remoto">Remoto</option>
-                <option value="hibrido">Híbrido</option>
-                <option value="en-sitio">En Sitio</option>
+            {/* Filtro de modalidad */}
+            <div className="w-full md:w-1/4">
+              <select
+                className="w-full p-3 text-black rounded-full"
+                value={jobTypeFilter}
+                onChange={(e) => setJobTypeFilter(e.target.value)}
+              >
+                <option value="all">Modalidad de trabajo</option>
+                <option value="Tiempo Completo">Tiempo Completo</option>
+                <option value="Medio Tiempo">Medio Tiempo</option>
+                <option value="Por Proyecto">Por Proyecto</option>
               </select>
             </div>
 
-            {/* Botón de Buscar */}
-            <button className="bg-button-green text-white py-3 px-6 rounded-full hover:bg-green-700 flex items-center justify-center gap-2">
-              <Search className="w-5 h-5" /> BUSCAR
+            {/* Botón de búsqueda */}
+            <button className="bg-lemon-green text-black font-bold px-8 py-3 rounded-full hover:bg-green-700 flex items-center justify-center gap-2">
+              <Search size={20} />
+              BUSCAR
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Contenedor de Vacantes Completo */}
-          <div className="bg-custom-beige p-6 rounded-lg shadow-lg">
-            {/* Opciones: Guardados, Postulados, Vencidos y Ordenar por */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex">
-                <button className="text-black font-bold border-2 border-gray-600 px-6 py-2 rounded-full hover:border-button-green mx-2">
-                  Guardados
-                </button>
-                <button className="text-black font-bold border-2 border-gray-600 px-6 py-2 rounded-full hover:border-button-green mx-2">
-                  Postulados
-                </button>
-                <button className="text-black font-bold border-2 border-gray-600 px-6 py-2 rounded-full hover:border-button-green mx-2">
-                  Vencidos
-                </button>
-              </div>
-              <button className="text-black font-bold border-2 border-gray-600 px-6 py-2 rounded-full hover:border-button-green ml-2">
-                Ordenar por
-              </button>
+      {/* Lista de Vacantes */}
+      <div className="container mx-auto py-12 px-4">
+        {/* Filtros de estado */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex gap-2">
+            <button className="text-black font-bold border-2 border-button-green px-6 py-2 rounded-full bg-button-green text-white">
+              Guardados
+            </button>
+            <button className="text-black font-bold border-2 border-gray-600 px-6 py-2 rounded-full hover:border-button-green">
+              Postulados
+            </button>
+            <button className="text-black font-bold border-2 border-gray-600 px-6 py-2 rounded-full hover:border-button-green">
+              Vencidos
+            </button>
+          </div>
+          <button className="text-black font-bold border-2 border-gray-600 px-6 py-2 rounded-full hover:border-button-green">
+            Ordenar por
+          </button>
+        </div>
+
+        {/* Loading state */}
+        {isLoading && (
+          <div className="text-center py-20">
+            <p className="text-gray-600 text-lg">Cargando vacantes...</p>
+          </div>
+        )}
+
+        {/* No hay vacantes */}
+        {!isLoading && filteredJobs.length === 0 && (
+          <div className="text-center py-20">
+            <p className="text-gray-600 text-lg">
+              {jobs.length === 0
+                ? 'No hay vacantes disponibles en este momento.'
+                : 'No se encontraron vacantes que coincidan con tu búsqueda.'}
+            </p>
+          </div>
+        )}
+
+        {/* Lista y Detalle */}
+        {!isLoading && filteredJobs.length > 0 && (
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Columna Izquierda: Lista */}
+            <div className="w-full md:w-1/2 space-y-4">
+              {filteredJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className={`bg-white p-6 rounded-lg shadow-lg cursor-pointer hover:shadow-xl relative ${
+                    selectedJob?.id === job.id
+                      ? 'border-2 border-button-green'
+                      : ''
+                  }`}
+                  onClick={() => setSelectedJob(job)}
+                >
+                  {/* Iconos */}
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <Bookmark className="text-gray-500 hover:text-button-green cursor-pointer" />
+                    <MoreVertical className="text-gray-500 hover:text-button-green cursor-pointer" />
+                  </div>
+
+                  {/* Info */}
+                  <p className="text-gray-500 text-sm">
+                    {getTimeSincePosted(job.createdAt)}
+                  </p>
+
+                  <h3 className="text-xl font-bold text-black mt-2">
+                    {job.title}
+                  </h3>
+
+                  <p className="text-gray-600">
+                    {job.company}{' '}
+                    {job.companyRating && `★ ${job.companyRating}`}
+                  </p>
+                  <p className="text-gray-600">{job.location}</p>
+
+                  <p className="font-bold text-black mt-2">Salario:</p>
+                  <p className="font-bold text-black">{job.salary}</p>
+
+                  <div className="flex gap-2 mt-2">
+                    <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm">
+                      {job.jobType}
+                    </span>
+                    {job.isRemote && (
+                      <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
+                        Remoto
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Lista de Vacantes y Detalle */}
-            <div className="container mx-auto flex flex-col md:flex-row gap-6">
-              {/* Columna Izquierda: Lista de Vacantes */}
-              <div className="w-full md:w-1/2">
-                {filteredJobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="bg-white p-6 rounded-lg shadow-lg mb-4 cursor-pointer hover:shadow-xl relative text-left"
-                    onClick={() => setSelectedJob(job)}
-                  >
-                    {/* Iconos de Guardado y Opciones */}
-                    <div className="absolute top-4 right-4 flex gap-2">
-                      <Bookmark className="text-gray-500 hover:text-button-green cursor-pointer" />
-                      <MoreVertical className="text-gray-500 hover:text-button-green cursor-pointer" />
-                    </div>
+            {/* Columna Derecha: Detalle */}
+            <div className="w-full md:w-1/2">
+              {selectedJob && (
+                <div className="bg-white p-6 rounded-lg shadow-lg sticky top-4">
+                  {/* Iconos */}
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <Bookmark className="text-gray-500 hover:text-button-green cursor-pointer" />
+                    <MoreVertical className="text-gray-500 hover:text-button-green cursor-pointer" />
+                  </div>
 
-                    {/* Información de la Vacante */}
-                    <p className="text-gray-500 text-sm">
-                      Publicado hace 7 min.
-                    </p>
+                  <p className="text-gray-500 text-sm">
+                    {getTimeSincePosted(selectedJob.createdAt)}
+                  </p>
 
-                    {/* TÍTULO - Alinear a la izquierda */}
-                    <h3 className="text-xl font-bold text-black mt-2 text-left">
-                      {job.title}
-                    </h3>
+                  <h2 className="text-2xl font-bold text-black mt-2">
+                    {selectedJob.title}
+                  </h2>
 
-                    <p className="text-gray-600 text-left">
-                      {job.company} ★ {job.rating}
-                    </p>
-                    <p className="text-gray-600 text-left">{job.location}</p>
+                  <p className="text-gray-600 mt-2">
+                    {selectedJob.company}{' '}
+                    {selectedJob.companyRating &&
+                      `★ ${selectedJob.companyRating}`}
+                  </p>
+                  <p className="text-gray-600">{selectedJob.location}</p>
 
-                    {/* SALARIO - Asegurar alineación */}
-                    <p className="font-bold text-black mt-2 text-left">
-                      Salario:
-                    </p>
-                    <p className="font-bold text-black text-left">
-                      {job.salary}
-                    </p>
+                  <p className="font-bold text-black mt-4">Salario:</p>
+                  <p className="font-bold text-black">{selectedJob.salary}</p>
 
-                    {/* ETIQUETAS - Alineación correcta */}
-                    <div className="flex gap-2 mt-2 text-left">
-                      <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm">
-                        {job.type}
+                  <div className="flex gap-2 mt-4">
+                    <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm">
+                      {selectedJob.jobType}
+                    </span>
+                    {selectedJob.isRemote && (
+                      <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
+                        Remoto
                       </span>
-                      {job.remote && (
-                        <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
-                          Remoto
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
 
-              {/* Columna Derecha: Detalle de Vacante */}
-              <div className="w-full md:w-1/2">
-                {selectedJob ? (
-                  <div className="bg-white p-6 rounded-lg shadow-lg text-left max-h-full overflow-visible relative">
-                    {/* Iconos de Guardado y Opciones */}
-                    <div className="absolute top-4 right-4 flex gap-2">
-                      <Bookmark className="text-gray-500 hover:text-button-green cursor-pointer" />
-                      <MoreVertical className="text-gray-500 hover:text-button-green cursor-pointer" />
-                    </div>
+                  <hr className="my-6" />
 
-                    <p className="text-gray-500 text-sm">
-                      Publicado hace 7 min.
-                    </p>
+                  <h3 className="font-bold text-lg mb-2">
+                    Descripción del Puesto
+                  </h3>
+                  <p className="text-gray-700 whitespace-pre-line">
+                    {selectedJob.description}
+                  </p>
 
-                    {/* TÍTULO EN NEGRITAS Y VISIBLE */}
-                    <h3 className="text-xl font-bold text-black mt-2">
-                      {selectedJob.title}
-                    </h3>
+                  {selectedJob.requirements && (
+                    <>
+                      <h3 className="font-bold text-lg mt-6 mb-2">
+                        Requisitos
+                      </h3>
+                      <p className="text-gray-700 whitespace-pre-line">
+                        {selectedJob.requirements}
+                      </p>
+                    </>
+                  )}
 
-                    <p className="text-gray-600">
-                      {selectedJob.company} ★ {selectedJob.rating}
-                    </p>
-                    <p className="text-gray-600">{selectedJob.location}</p>
-
-                    {/* SALARIO EN NEGRITAS Y VISIBLE */}
-                    <p className="font-bold text-black mt-2">Salario:</p>
-                    <p className="font-bold text-black">{selectedJob.salary}</p>
-
-                    {/* ETIQUETAS - Tipo de Trabajo y Modalidad */}
-                    <div className="flex gap-2 mt-2">
-                      <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm">
-                        {selectedJob.type}
-                      </span>
-                      {selectedJob.remote && (
-                        <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
-                          Remoto
-                        </span>
-                      )}
-                    </div>
-
-                    {/* TEXTO DE DESCRIPCIÓN ASEGURANDO SU VISIBILIDAD */}
-                    <p className="mt-4 text-black whitespace-pre-line break-words leading-relaxed overflow-visible">
-                      {selectedJob.description}
-                    </p>
-
-                    <button className="bg-button-green text-white py-3 px-6 rounded-full mt-4 hover:bg-green-700">
-                      POSTULARSE →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-500 p-6">
-                    <p>Selecciona una vacante para ver los detalles.</p>
-                  </div>
-                )}
-              </div>
+                  <button className="w-full bg-button-green text-white font-bold py-3 rounded-lg mt-6 hover:bg-green-700">
+                    POSTULARME
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
