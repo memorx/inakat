@@ -51,7 +51,7 @@ export default function LoginPage() {
         } else if (role === 'company') {
           window.location.href = '/company/dashboard';
         } else {
-          window.location.href = '/';
+          window.location.href = '/my-applications';
         }
       } else {
         setError(data.error || 'Error al iniciar sesión');

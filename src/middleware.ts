@@ -16,7 +16,10 @@ export function middleware(request: NextRequest) {
   if (!token) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
-        { success: false, error: '...' },
+        {
+          success: false,
+          error: 'No autenticado. Por favor inicia sesión.'
+        },
         { status: 401 }
       );
     }
@@ -34,7 +37,10 @@ export function middleware(request: NextRequest) {
   if (!payload) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
-        { success: false, error: '...' },
+        {
+          success: false,
+          error: 'Token inválido o expirado. Por favor inicia sesión de nuevo.'
+        },
         { status: 401 }
       );
     }
@@ -52,7 +58,11 @@ export function middleware(request: NextRequest) {
   if (isAdminRoute && payload.role !== 'admin') {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
-        { success: false, error: '...' },
+        {
+          success: false,
+          error:
+            'No tienes permisos de administrador para acceder a este recurso.'
+        },
         { status: 403 }
       );
     }
@@ -85,6 +95,24 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
+  // Verificar permisos de USER para rutas específicas
+  const isUserRoute =
+    pathname.startsWith('/api/my-applications') ||
+    pathname.startsWith('/my-applications');
+
+  if (isUserRoute && payload.role !== 'user' && payload.role !== 'admin') {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permisos de usuario.' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.redirect(
+      new URL('/unauthorized?reason=no-permission', request.url)
+    );
+  }
+
   // Agregar información del usuario a los headers para uso en API routes
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', payload.userId.toString());
@@ -107,8 +135,10 @@ export const config = {
   matcher: [
     '/api/company-requests/:path*',
     '/api/company/:path*',
+    '/api/my-applications',
     '/admin/:path*',
-    '/company/:path*'
+    '/company/:path*',
+    '/my-applications'
   ],
   runtime: 'nodejs'
 };
