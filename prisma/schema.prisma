@@ -31,6 +31,7 @@ model User {
   // Relación opcional con CompanyRequest
   companyRequest    CompanyRequest?
   jobs              Job[]
+  applications      Application[]
   
   @@index([email])
   @@index([role])
@@ -114,10 +115,49 @@ model Job {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   expiresAt       DateTime?
+  applications    Application[] 
   
   @@index([status])
   @@index([companyId])
   @@index([createdAt])
   @@index([location])
   @@index([jobType])
+}
+
+// =============================================
+// APLICACIONES A VACANTES
+// =============================================
+model Application {
+  id              Int       @id @default(autoincrement())
+  
+  // Relaciones
+  jobId           Int
+  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  userId          Int?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Información del candidato
+  candidateName   String
+  candidateEmail  String
+  candidatePhone  String?
+  
+  // Documentos
+  cvUrl           String?
+  coverLetter     String?   @db.Text
+  
+  // Estado
+  status          String    @default("pending")
+  notes           String?   @db.Text
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  reviewedAt      DateTime?
+  
+  @@index([jobId])
+  @@index([userId])
+  @@index([status])
+  @@index([candidateEmail])
+  @@index([createdAt])
 }
