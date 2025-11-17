@@ -8,6 +8,7 @@ import {
   Bookmark,
   MoreVertical
 } from 'lucide-react';
+import ApplyJobModal from './ApplyJobModal';
 
 interface Job {
   id: number;
@@ -35,6 +36,10 @@ const SearchPositionsSection = () => {
   const [locationFilter, setLocationFilter] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('');
 
+  // Modal de aplicación
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+  const [applicationSuccess, setApplicationSuccess] = useState(false);
+
   // Cargar vacantes desde la API
   useEffect(() => {
     fetchJobs();
@@ -54,7 +59,7 @@ const SearchPositionsSection = () => {
       if (data.success) {
         setJobs(data.data);
         if (data.data.length > 0) {
-          setSelectedJob(data.data[0]); // Seleccionar la primera por defecto
+          setSelectedJob(data.data[0]);
         }
       }
     } catch (error) {
@@ -67,7 +72,6 @@ const SearchPositionsSection = () => {
   const applyFilters = () => {
     let filtered = [...jobs];
 
-    // Filtrar por búsqueda
     if (searchTerm.trim()) {
       const query = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -78,14 +82,12 @@ const SearchPositionsSection = () => {
       );
     }
 
-    // Filtrar por ubicación
     if (locationFilter.trim()) {
       filtered = filtered.filter((job) =>
         job.location.toLowerCase().includes(locationFilter.toLowerCase())
       );
     }
 
-    // Filtrar por tipo de trabajo
     if (jobTypeFilter && jobTypeFilter !== 'all') {
       filtered = filtered.filter((job) => job.jobType === jobTypeFilter);
     }
@@ -107,8 +109,29 @@ const SearchPositionsSection = () => {
     return `Publicado hace ${diffDays} día${diffDays > 1 ? 's' : ''}.`;
   };
 
+  const handleApplyClick = () => {
+    setIsApplyModalOpen(true);
+  };
+
+  const handleApplicationSuccess = () => {
+    setApplicationSuccess(true);
+    setTimeout(() => setApplicationSuccess(false), 5000);
+  };
+
   return (
     <section className="bg-custom-beige text-text-black pt-20">
+      {/* Modal de aplicación */}
+      {selectedJob && (
+        <ApplyJobModal
+          jobId={selectedJob.id}
+          jobTitle={selectedJob.title}
+          company={selectedJob.company}
+          isOpen={isApplyModalOpen}
+          onClose={() => setIsApplyModalOpen(false)}
+          onSuccess={handleApplicationSuccess}
+        />
+      )}
+
       {/* Sección de Búsqueda */}
       <div className="bg-soft-green text-white py-24 mt-20">
         <div className="container mx-auto text-center">
@@ -118,7 +141,6 @@ const SearchPositionsSection = () => {
 
           {/* Filtros */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mb-10">
-            {/* Búsqueda de puesto/empresa */}
             <div className="relative w-full md:w-1/4">
               <input
                 type="text"
@@ -130,7 +152,6 @@ const SearchPositionsSection = () => {
               <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             </div>
 
-            {/* Filtro de ubicación */}
             <div className="relative w-full md:w-1/4">
               <input
                 type="text"
@@ -142,7 +163,6 @@ const SearchPositionsSection = () => {
               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             </div>
 
-            {/* Filtro de modalidad */}
             <div className="w-full md:w-1/4">
               <select
                 className="w-full p-3 text-black rounded-full"
@@ -156,7 +176,6 @@ const SearchPositionsSection = () => {
               </select>
             </div>
 
-            {/* Botón de búsqueda */}
             <button className="bg-lemon-green text-black font-bold px-8 py-3 rounded-full hover:bg-green-700 flex items-center justify-center gap-2">
               <Search size={20} />
               BUSCAR
@@ -167,6 +186,14 @@ const SearchPositionsSection = () => {
 
       {/* Lista de Vacantes */}
       <div className="container mx-auto py-12 px-4">
+        {/* Mensaje de éxito */}
+        {applicationSuccess && (
+          <div className="mb-6 p-4 bg-green-100 border-2 border-green-500 text-green-800 rounded-lg text-center font-semibold">
+            ✅ ¡Aplicación enviada exitosamente! El reclutador revisará tu
+            perfil pronto.
+          </div>
+        )}
+
         {/* Filtros de estado */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex gap-2">
@@ -218,13 +245,11 @@ const SearchPositionsSection = () => {
                   }`}
                   onClick={() => setSelectedJob(job)}
                 >
-                  {/* Iconos */}
                   <div className="absolute top-4 right-4 flex gap-2">
                     <Bookmark className="text-gray-500 hover:text-button-green cursor-pointer" />
                     <MoreVertical className="text-gray-500 hover:text-button-green cursor-pointer" />
                   </div>
 
-                  {/* Info */}
                   <p className="text-gray-500 text-sm">
                     {getTimeSincePosted(job.createdAt)}
                   </p>
@@ -260,7 +285,6 @@ const SearchPositionsSection = () => {
             <div className="w-full md:w-1/2">
               {selectedJob && (
                 <div className="bg-white p-6 rounded-lg shadow-lg sticky top-4">
-                  {/* Iconos */}
                   <div className="absolute top-4 right-4 flex gap-2">
                     <Bookmark className="text-gray-500 hover:text-button-green cursor-pointer" />
                     <MoreVertical className="text-gray-500 hover:text-button-green cursor-pointer" />
@@ -315,7 +339,10 @@ const SearchPositionsSection = () => {
                     </>
                   )}
 
-                  <button className="w-full bg-button-green text-white font-bold py-3 rounded-lg mt-6 hover:bg-green-700">
+                  <button
+                    onClick={handleApplyClick}
+                    className="w-full bg-button-green text-white font-bold py-3 rounded-lg mt-6 hover:bg-green-700 transition-colors"
+                  >
                     POSTULARME
                   </button>
                 </div>
