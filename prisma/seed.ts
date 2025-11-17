@@ -187,6 +187,79 @@ async function main() {
   }
 
   // =============================================
+  // 2.5 CREAR USUARIOS NORMALES (APLICANTES)
+  // =============================================
+  console.log('\n👤 Creando usuarios normales (aplicantes)...');
+
+  const userPassword = await bcrypt.hash('User123!', 10);
+
+  const normalUsers = [
+    {
+      email: 'carlos.dev@email.com',
+      password: userPassword,
+      nombre: 'Carlos',
+      apellidoPaterno: 'Ramírez',
+      apellidoMaterno: 'López',
+      role: 'user'
+    },
+    {
+      email: 'ana.designer@email.com',
+      password: userPassword,
+      nombre: 'Ana',
+      apellidoPaterno: 'Martínez',
+      apellidoMaterno: 'García',
+      role: 'user'
+    },
+    {
+      email: 'luis.marketing@email.com',
+      password: userPassword,
+      nombre: 'Luis',
+      apellidoPaterno: 'González',
+      apellidoMaterno: 'Hernández',
+      role: 'user'
+    },
+    {
+      email: 'maria.rh@email.com',
+      password: userPassword,
+      nombre: 'María',
+      apellidoPaterno: 'Sánchez',
+      apellidoMaterno: 'Torres',
+      role: 'user'
+    },
+    {
+      email: 'pedro.junior@email.com',
+      password: userPassword,
+      nombre: 'Pedro',
+      apellidoPaterno: 'Jiménez',
+      apellidoMaterno: 'Ruiz',
+      role: 'user'
+    }
+  ];
+
+  let usersCreated = 0;
+  for (const userData of normalUsers) {
+    const existing = await prisma.user.findUnique({
+      where: { email: userData.email }
+    });
+
+    if (!existing) {
+      await prisma.user.create({
+        data: {
+          ...userData,
+          isActive: true,
+          emailVerified: new Date()
+        }
+      });
+      usersCreated++;
+      console.log(`✅ Usuario creado: ${userData.nombre} (${userData.email})`);
+    } else {
+      console.log(`⏭️  Usuario ya existe: ${userData.email}`);
+    }
+  }
+
+  console.log(`✅ ${usersCreated} usuarios normales creados`);
+
+  // =============================================
   // 3. CREAR VACANTES (DISTRIBUIDAS ENTRE EMPRESAS)
   // =============================================
   console.log('\n💼 Creando vacantes de ejemplo...\n');
@@ -718,6 +791,7 @@ Responsabilidades:
     `  • Usuarios admin: 2 (admin@inakat.com, guillermo.sanchezy@gmail.com)`
   );
   console.log(`  • Empresas: 3 (aprobadas con cuentas activas)`);
+  console.log(`  • Usuarios normales: ${usersCreated}`);
   console.log(
     `  • Vacantes: ${jobsCreated} nuevas creadas (18 total distribuidas)`
   );
@@ -743,8 +817,16 @@ Responsabilidades:
   console.log('     Email: hr@grupofinanciero.mx');
   console.log('     Password: Company123!');
   console.log('     Vacantes: 6 (negocios/finanzas)');
-  console.log('\n🚀 Para probar el dashboard de empresas:');
-  console.log('   http://localhost:3000/company/dashboard\n');
+  console.log('\n  👤 USUARIOS NORMALES (Password: User123!):');
+  console.log('     carlos.dev@email.com - Desarrollador');
+  console.log('     ana.designer@email.com - Diseñadora');
+  console.log('     luis.marketing@email.com - Marketing');
+  console.log('     maria.rh@email.com - Recursos Humanos');
+  console.log('     pedro.junior@email.com - Recién Egresado');
+  console.log('\n🚀 Para probar:');
+  console.log('   Admin: http://localhost:3000/admin/requests');
+  console.log('   Empresa: http://localhost:3000/company/dashboard');
+  console.log('   Usuario: http://localhost:3000/talents\n');
 }
 
 async function createSampleApplications() {

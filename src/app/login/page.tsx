@@ -47,7 +47,7 @@ export default function LoginPage() {
         const role = data.user.role;
 
         if (role === 'admin') {
-          window.location.href = '/admin';
+          window.location.href = '/admin/requests';
         } else if (role === 'company') {
           window.location.href = '/company/dashboard';
         } else {
