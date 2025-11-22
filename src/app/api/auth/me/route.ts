@@ -1,3 +1,5 @@
+// RUTA: src/app/api/auth/me/route.ts
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
@@ -46,6 +48,7 @@ export async function GET() {
         apellidoPaterno: true,
         apellidoMaterno: true,
         role: true,
+        credits: true, // 💰 AGREGAR CRÉDITOS
         isActive: true,
         emailVerified: true,
         lastLogin: true,

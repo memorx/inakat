@@ -14,6 +14,7 @@ interface UserData {
   email: string;
   role: string;
   nombre?: string;
+  credits?: number; // 💰 Agregar créditos
 }
 
 const Navbar = () => {
@@ -40,7 +41,8 @@ const Navbar = () => {
               userId: data.user.id,
               email: data.user.email,
               role: data.user.role,
-              nombre: data.user.nombre
+              nombre: data.user.nombre,
+              credits: data.user.credits || 0 // 💰 Incluir créditos
             });
           }
         } else {
@@ -223,6 +225,30 @@ const Navbar = () => {
                       <p className="text-xs text-button-orange font-medium mt-1">
                         {getRoleLabel()}
                       </p>
+
+                      {/* 💰 Mostrar créditos solo para empresas */}
+                      {user.role === 'company' && (
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          <p className="text-xs text-gray-600 flex items-center gap-1">
+                            <svg
+                              className="w-4 h-4 text-green-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            <span className="font-bold text-green-600">
+                              {user.credits} créditos
+                            </span>
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Dashboard Link */}
