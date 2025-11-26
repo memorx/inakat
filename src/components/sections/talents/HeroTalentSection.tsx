@@ -1,9 +1,12 @@
-"use client";
+// RUTA: src/components/sections/talents/HeroTalentSection.tsx
 
-import React from "react";
-import Image from "next/image";
-import talentsImage from "@/assets/images/4-talent/1.png";
-import icoImage from "@/assets/images/logo/ico.png";
+'use client';
+
+import React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import talentsImage from '@/assets/images/4-talent/1.png';
+import icoImage from '@/assets/images/logo/ico.png';
 
 const HeroTalentSection = () => {
   return (
@@ -16,9 +19,13 @@ const HeroTalentSection = () => {
             Regístrate, crea tu perfil, sube tu currículum y en seguida nos
             contactaremos contigo.
           </p>
-          <button className="bg-button-green text-white py-2 px-6 rounded-full hover:bg-green-700">
-            REGÍSTRATE →
-          </button>
+
+          {/* 🔥 BOTÓN ACTUALIZADO CON LINK */}
+          <Link href="/register">
+            <button className="bg-button-green text-white py-2 px-6 rounded-full hover:bg-green-700 transition-colors">
+              REGÍSTRATE →
+            </button>
+          </Link>
         </div>
 
         {/* Columna Derecha: Imagen */}
