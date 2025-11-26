@@ -1,5 +1,9 @@
+// RUTA: src/app/api/jobs/route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
+import { cookies } from 'next/headers';
 
 // GET - Listar todas las vacantes activas
 export async function GET(request: Request) {
@@ -9,11 +13,20 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
     const location = searchParams.get('location') || '';
     const jobType = searchParams.get('jobType') || '';
+    const workMode = searchParams.get('workMode') || '';
+    const profile = searchParams.get('profile') || '';
+    const userId = searchParams.get('userId') || '';
+    const includeDrafts = searchParams.get('includeDrafts') === 'true';
 
-    // Construir filtros
-    const where: any = {
-      status: status
-    };
+    const where: any = {};
+
+    if (!includeDrafts) {
+      where.status = status;
+    }
+
+    if (userId) {
+      where.userId = parseInt(userId);
+    }
 
     if (search) {
       where.OR = [
@@ -31,10 +44,19 @@ export async function GET(request: Request) {
       where.jobType = jobType;
     }
 
+    if (workMode) {
+      where.workMode = workMode;
+    }
+
+    if (profile) {
+      where.profile = profile;
+    }
+
     const jobs = await prisma.job.findMany({
       where,
-      orderBy: {
-        createdAt: 'desc'
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { applications: true } }
       }
     });
 
@@ -55,6 +77,25 @@ export async function GET(request: Request) {
 // POST - Crear nueva vacante
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+
+    let userId: number | null = null;
+    let userRole: string = 'user';
+
+    if (token) {
+      const payload = verifyToken(token);
+      if (payload?.userId) {
+        const user = await prisma.user.findUnique({
+          where: { id: payload.userId }
+        });
+        if (user) {
+          userId = user.id;
+          userRole = user.role;
+        }
+      }
+    }
+
     const body = await request.json();
     const {
       title,
@@ -62,15 +103,16 @@ export async function POST(request: Request) {
       location,
       salary,
       jobType,
-      isRemote,
+      workMode,
       description,
       requirements,
-      companyId,
       companyRating,
-      expiresAt
+      expiresAt,
+      profile,
+      seniority,
+      publishNow
     } = body;
 
-    // Validaciones básicas
     if (
       !title ||
       !company ||
@@ -80,16 +122,66 @@ export async function POST(request: Request) {
       !description
     ) {
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Faltan campos requeridos: title, company, location, salary, jobType, description'
-        },
+        { success: false, error: 'Faltan campos requeridos' },
         { status: 400 }
       );
     }
 
-    // Crear vacante
+    // Calcular costo en créditos
+    let creditCost = 0;
+    if (profile && seniority && workMode) {
+      const pricing = await prisma.pricingMatrix.findFirst({
+        where: { profile, seniority, workMode, isActive: true }
+      });
+      creditCost = pricing?.credits || 5;
+    }
+
+    let initialStatus = 'draft';
+
+    if (publishNow && userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (user) {
+        if (user.role === 'admin') {
+          initialStatus = 'active';
+        } else if (user.role === 'company') {
+          if (user.credits >= creditCost) {
+            initialStatus = 'active';
+
+            await prisma.user.update({
+              where: { id: userId },
+              data: { credits: { decrement: creditCost } }
+            });
+
+            await prisma.creditTransaction.create({
+              data: {
+                userId: userId,
+                type: 'spend',
+                amount: -creditCost,
+                balanceBefore: user.credits,
+                balanceAfter: user.credits - creditCost,
+                description: `Publicación de vacante: ${title}`
+              }
+            });
+          } else {
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'Créditos insuficientes para publicar',
+                required: creditCost,
+                available: user.credits,
+                savedAsDraft: false
+              },
+              { status: 402 }
+            );
+          }
+        }
+      }
+    }
+
+    // Crear vacante SIN isRemote
     const job = await prisma.job.create({
       data: {
         title,
@@ -97,21 +189,40 @@ export async function POST(request: Request) {
         location,
         salary,
         jobType,
-        isRemote: isRemote || false,
+        workMode: workMode || 'presential',
         description,
         requirements: requirements || null,
-        companyId: companyId || null,
+        userId: userId,
         companyRating: companyRating || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
-        status: 'active'
+        status: initialStatus,
+        profile: profile || null,
+        seniority: seniority || null,
+        creditCost: initialStatus === 'active' ? creditCost : 0
       }
     });
+
+    if (initialStatus === 'active' && userId && userRole === 'company') {
+      await prisma.creditTransaction.updateMany({
+        where: {
+          userId,
+          description: `Publicación de vacante: ${title}`,
+          jobId: null
+        },
+        data: { jobId: job.id }
+      });
+    }
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Vacante creada exitosamente',
-        data: job
+        message:
+          initialStatus === 'active'
+            ? '¡Vacante publicada exitosamente!'
+            : 'Vacante guardada como borrador',
+        data: job,
+        status: initialStatus,
+        creditCost: initialStatus === 'active' ? creditCost : 0
       },
       { status: 201 }
     );
