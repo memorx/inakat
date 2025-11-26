@@ -1,3 +1,5 @@
+// RUTA: src/components/sections/talents/SearchPositionsSection.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,7 +8,8 @@ import {
   MapPin,
   Briefcase,
   Bookmark,
-  MoreVertical
+  MoreVertical,
+  Building2
 } from 'lucide-react';
 import ApplyJobModal from './ApplyJobModal';
 
@@ -17,7 +20,7 @@ interface Job {
   location: string;
   salary: string;
   jobType: string;
-  isRemote: boolean;
+  workMode?: string; // Actualizado de isRemote
   companyRating: number | null;
   description: string;
   requirements: string | null;
@@ -25,11 +28,21 @@ interface Job {
   createdAt: string;
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
 const SearchPositionsSection = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Usuario actual
+  const [user, setUser] = useState<User | null>(null);
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +53,11 @@ const SearchPositionsSection = () => {
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [applicationSuccess, setApplicationSuccess] = useState(false);
 
+  // Cargar usuario actual
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
+
   // Cargar vacantes desde la API
   useEffect(() => {
     fetchJobs();
@@ -49,6 +67,21 @@ const SearchPositionsSection = () => {
   useEffect(() => {
     applyFilters();
   }, [jobs, searchTerm, locationFilter, jobTypeFilter]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUser(data.user);
+        }
+      }
+      // Si no está logueado o error, user queda null (está bien)
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  };
 
   const fetchJobs = async () => {
     try {
@@ -117,6 +150,28 @@ const SearchPositionsSection = () => {
     setApplicationSuccess(true);
     setTimeout(() => setApplicationSuccess(false), 5000);
   };
+
+  // Helper para mostrar badge de modalidad
+  const getWorkModeBadge = (job: Job) => {
+    if (job.workMode === 'remote') {
+      return (
+        <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
+          Remoto
+        </span>
+      );
+    }
+    if (job.workMode === 'hybrid') {
+      return (
+        <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+          Híbrido
+        </span>
+      );
+    }
+    return null;
+  };
+
+  // Verificar si el usuario puede aplicar (solo candidatos/users)
+  const canApply = !user || user.role === 'user';
 
   return (
     <section className="bg-custom-beige text-text-black pt-20">
@@ -191,6 +246,33 @@ const SearchPositionsSection = () => {
           <div className="mb-6 p-4 bg-green-100 border-2 border-green-500 text-green-800 rounded-lg text-center font-semibold">
             ✅ ¡Aplicación enviada exitosamente! El reclutador revisará tu
             perfil pronto.
+          </div>
+        )}
+
+        {/* Aviso para empresas */}
+        {user && user.role === 'company' && (
+          <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-300 text-blue-800 rounded-lg flex items-center gap-3">
+            <Building2 size={24} />
+            <div>
+              <p className="font-semibold">Estás viendo como empresa</p>
+              <p className="text-sm">
+                Puedes ver las vacantes publicadas pero no aplicar a ellas. Para
+                publicar tus vacantes, ve a tu panel de empresa.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Aviso para admin */}
+        {user && user.role === 'admin' && (
+          <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-300 text-purple-800 rounded-lg flex items-center gap-3">
+            <Building2 size={24} />
+            <div>
+              <p className="font-semibold">Vista de administrador</p>
+              <p className="text-sm">
+                Estás viendo las vacantes activas en la plataforma.
+              </p>
+            </div>
           </div>
         )}
 
@@ -271,11 +353,7 @@ const SearchPositionsSection = () => {
                     <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm">
                       {job.jobType}
                     </span>
-                    {job.isRemote && (
-                      <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
-                        Remoto
-                      </span>
-                    )}
+                    {getWorkModeBadge(job)}
                   </div>
                 </div>
               ))}
@@ -312,11 +390,7 @@ const SearchPositionsSection = () => {
                     <span className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm">
                       {selectedJob.jobType}
                     </span>
-                    {selectedJob.isRemote && (
-                      <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm">
-                        Remoto
-                      </span>
-                    )}
+                    {getWorkModeBadge(selectedJob)}
                   </div>
 
                   <hr className="my-6" />
@@ -339,12 +413,21 @@ const SearchPositionsSection = () => {
                     </>
                   )}
 
-                  <button
-                    onClick={handleApplyClick}
-                    className="w-full bg-button-green text-white font-bold py-3 rounded-lg mt-6 hover:bg-green-700 transition-colors"
-                  >
-                    POSTULARME
-                  </button>
+                  {/* BOTÓN POSTULARME - Solo para candidatos */}
+                  {canApply ? (
+                    <button
+                      onClick={handleApplyClick}
+                      className="w-full bg-button-green text-white font-bold py-3 rounded-lg mt-6 hover:bg-green-700 transition-colors"
+                    >
+                      POSTULARME
+                    </button>
+                  ) : (
+                    <div className="mt-6 p-4 bg-gray-100 rounded-lg text-center text-gray-600">
+                      {user?.role === 'company'
+                        ? '🏢 Las empresas no pueden aplicar a vacantes'
+                        : '👤 Inicia sesión como candidato para aplicar'}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

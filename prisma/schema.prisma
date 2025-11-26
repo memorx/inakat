@@ -273,3 +273,97 @@ model CreditTransaction {
   @@index([createdAt])
   @@index([jobId])
 }
+
+// =============================================
+// CANDIDATOS (Inyectados por Admin)
+// =============================================
+model Candidate {
+  id              Int       @id @default(autoincrement())
+  
+  // Datos personales
+  nombre          String
+  apellidoPaterno String
+  apellidoMaterno String?
+  email           String    @unique
+  telefono        String?
+  
+  // Filtros demográficos
+  sexo            String?   // "M", "F", "Otro"
+  fechaNacimiento DateTime?
+  
+  // Educación
+  universidad     String?
+  carrera         String?
+  nivelEstudios   String?   // "Licenciatura", "Maestría", "Doctorado", "Técnico"
+  
+  // Experiencia (años totales - se calcula automáticamente)
+  añosExperiencia Int       @default(0)
+  
+  // Especialidad/Perfil
+  profile         String?   // "Tecnología", "Diseño Gráfico", etc.
+  seniority       String?   // "Practicante", "Jr", "Middle", "Sr", "Director"
+  
+  // Documentos y links
+  cvUrl           String?
+  portafolioUrl   String?
+  linkedinUrl     String?
+  
+  // Fuente del candidato
+  source          String    @default("manual") // "manual", "linkedin", "occ", "referido"
+  
+  // Notas del admin
+  notas           String?   @db.Text
+  
+  // Estado
+  status          String    @default("available") // "available", "in_process", "hired", "inactive"
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relaciones
+  experiences     Experience[]
+  
+  @@index([email])
+  @@index([sexo])
+  @@index([universidad])
+  @@index([profile])
+  @@index([seniority])
+  @@index([status])
+  @@index([source])
+  @@index([añosExperiencia])
+  @@index([createdAt])
+}
+
+// =============================================
+// EXPERIENCIAS LABORALES DE CANDIDATOS
+// =============================================
+model Experience {
+  id            Int       @id @default(autoincrement())
+  
+  // Relación con candidato
+  candidateId   Int
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  // Datos de la experiencia
+  empresa       String
+  puesto        String
+  ubicacion     String?
+  
+  // Fechas
+  fechaInicio   DateTime
+  fechaFin      DateTime? // null = trabajo actual
+  esActual      Boolean   @default(false)
+  
+  // Descripción
+  descripcion   String?   @db.Text
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([candidateId])
+  @@index([empresa])
+  @@index([fechaInicio])
+}
+

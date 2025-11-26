@@ -202,11 +202,20 @@ export default function CompanyDashboard() {
     <div className="min-h-screen bg-custom-beige py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-title-dark mb-2">
-            Dashboard de {data.company.companyInfo.nombreEmpresa}
-          </h1>
-          <p className="text-gray-600">Bienvenido, {data.company.userName}</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-title-dark mb-2">
+              Dashboard de {data.company.companyInfo.nombreEmpresa}
+            </h1>
+            <p className="text-gray-600">Bienvenido, {data.company.userName}</p>
+          </div>
+          <button
+            onClick={() => router.push('/create-job')}
+            className="px-6 py-3 bg-button-green text-white font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Briefcase size={20} />
+            CREAR VACANTE
+          </button>
         </div>
 
         {/* Estadísticas Principales */}
